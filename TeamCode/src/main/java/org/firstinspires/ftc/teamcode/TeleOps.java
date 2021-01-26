@@ -79,15 +79,14 @@ public class TeleOps extends LinearOpMode {
 
         if (opModeIsActive()) {
 
-
             while (opModeIsActive()) {
+
                 if (gamepad1.right_bumper) {
                     blocker.setPosition(1);
                 }
                 else if (gamepad1.left_bumper) {
                     blocker.setPosition(-1);
                 }
-                telemetry.update();
                 //lift up
                 if (gamepad2.a && !liftButtonBot.isPressed()) {
                     Move_Lift_Down_Continuous();
@@ -132,6 +131,8 @@ public class TeleOps extends LinearOpMode {
                 } else {
                     Arm.setPower(0);
                 }
+
+                /*
                 //base programming
                 //front back left right
                 if (Math.abs(gamepad1.left_stick_y) > Math.abs(gamepad1.left_stick_x)) {
@@ -189,8 +190,44 @@ public class TeleOps extends LinearOpMode {
                 } else {
                     StopBase();
                 }
+*/
 
+                // Mecanum drive is controlled with three axes: drive (front-and-back),
+                // strafe (left-and-right), and twist (rotating the whole chassis).
+                double drive  = gamepad1.left_stick_y * -1;
+                double strafe = gamepad1.left_stick_x;
+                double twist  = gamepad1.right_stick_x;
 
+                // You may need to multiply some of these by -1 to invert direction of
+                // the motor.  This is not an issue with the calculations themselves.
+                double[] speeds = {
+                        (drive + strafe + twist),
+                        (drive - strafe - twist),
+                        (drive - strafe + twist),
+                        (drive + strafe - twist)
+                };
+
+                // Because we are adding vectors and motors only take values between
+                // [-1,1] we may need to normalize them.
+
+                // Loop through all values in the speeds[] array and find the greatest
+                // *magnitude*.  Not the greatest velocity.
+                double max = Math.abs(speeds[0]);
+                for(int i = 0; i < speeds.length; i++) {
+                    if ( max < Math.abs(speeds[i]) ) max = Math.abs(speeds[i]);
+                }
+
+                // If and only if the maximum is outside of the range we want it to be,
+                // normalize all the other speeds based on the given speed value.
+                if (max > 1) {
+                    for (int i = 0; i < speeds.length; i++) speeds[i] /= max;
+                }
+
+                // apply the calculated values to the motors.
+                Left_Front_Wheel.setPower(speeds[0]);
+                Right_Front_Wheel.setPower(speeds[1]);
+                Left_Rear_Wheel.setPower(speeds[2]);
+                Right_Rear_Wheel.setPower(speeds[3]);
             }
 
         }
@@ -198,14 +235,14 @@ public class TeleOps extends LinearOpMode {
         telemetry.update();
     }
 
-    // all of our base movement functions
+
     private void StopBase() {
         Left_Front_Wheel.setPower(0);
         Right_Front_Wheel.setPower(0);
         Left_Rear_Wheel.setPower(0);
         Right_Rear_Wheel.setPower(0);
     }
-
+  /*
     private void Reverse(double power) {
         Left_Front_Wheel.setPower(power * -1);
         Right_Front_Wheel.setPower(power * -1);
@@ -275,6 +312,7 @@ public class TeleOps extends LinearOpMode {
         Left_Rear_Wheel.setPower(power*-1);
         Right_Rear_Wheel.setPower(power);
     }
+    */
     private void Move_Lift_Up_Continuous(){
         StopBase();
         while (!liftButtonTop.isPressed()) {
