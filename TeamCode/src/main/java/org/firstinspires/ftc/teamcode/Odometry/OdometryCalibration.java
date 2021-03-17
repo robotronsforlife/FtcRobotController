@@ -35,7 +35,7 @@ public class OdometryCalibration extends LinearOpMode {
     String rfName = "Right_Front_Wheel", rbName = "Right_Rear_Wheel", lfName = "Left_Front_Wheel", lbName = "Left_Rear_Wheel";
     String verticalLeftEncoderName = lbName, verticalRightEncoderName = lfName, horizontalEncoderName = rbName;
 
-    final double PIVOT_SPEED = 0.5;
+    final double PIVOT_SPEED = 0.2;
 
     //The amount of encoder ticks for each inch the robot moves. THIS WILL CHANGE FOR EACH ROBOT AND NEEDS TO BE UPDATED HERE
     final double COUNTS_PER_INCH = 307.699557;
@@ -108,7 +108,7 @@ public class OdometryCalibration extends LinearOpMode {
         Since the left encoder is also mapped to a drive motor, the encoder value needs to be reversed with the negative sign in front
         THIS MAY NEED TO BE CHANGED FOR EACH ROBOT
        */
-        double encoderDifference = Math.abs(verticalLeft.getCurrentPosition()) - (Math.abs(verticalRight.getCurrentPosition()));
+        double encoderDifference = Math.abs(verticalRight.getCurrentPosition()) - Math.abs(verticalLeft.getCurrentPosition());
         double verticalEncoderTickOffsetPerDegree = encoderDifference/angle;
         double wheelBaseSeparation = (2*90*verticalEncoderTickOffsetPerDegree)/(Math.PI*COUNTS_PER_INCH);
         horizontalTickOffset = horizontal.getCurrentPosition()/Math.toRadians(getZAngle());
