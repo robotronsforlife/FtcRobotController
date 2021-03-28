@@ -72,8 +72,8 @@ public class TeleOps extends LinearOpMode {
 
 
         waitForStart();
-        Right_Front_Wheel.setDirection(DcMotorSimple.Direction.REVERSE);
         Left_Rear_Wheel.setDirection(DcMotorSimple.Direction.REVERSE);
+        Left_Front_Wheel.setDirection(DcMotorSimple.Direction.REVERSE);
         leftShooter.setDirection(DcMotorSimple.Direction.REVERSE);
 
 
@@ -132,65 +132,63 @@ public class TeleOps extends LinearOpMode {
                 } else {
                     Arm.setPower(0);
                 }
-                //base programming
-                //front back left right
-                if (Math.abs(gamepad1.left_stick_y) > Math.abs(gamepad1.left_stick_x)) {
-                    if (gamepad1.left_stick_y < 0) {
-                        Forward(Math.abs(gamepad1.left_stick_y));
-                    } else if (gamepad1.left_stick_y > 0) {
-                        Reverse(Math.abs(gamepad1.left_stick_y));
-                    }
-                } else if (Math.abs(gamepad1.left_stick_y) < Math.abs(gamepad1.left_stick_x)) {
-                    if (gamepad1.left_stick_x > 0) {
-                        Right(Math.abs(gamepad1.left_stick_x));
-                    } else if (gamepad1.left_stick_x < 0) {
-                        Left(Math.abs(gamepad1.left_stick_x));
-                    }
-                } else {
-                    if (Math.abs(gamepad1.left_stick_y) == 0 && Math.abs(gamepad1.left_stick_y) == 0) {
-                        StopBase();
-                    }
-                }
-                //diagonally left up , right down, left down, right up
-                if (gamepad1.right_stick_x < 0 && gamepad1.right_stick_y < 0) {
-                    if (Math.abs(gamepad1.right_stick_x) >= Math.abs(gamepad1.right_stick_y)) {
-                        Diagonally_Left_Up(Math.abs(gamepad1.right_stick_x));
-                    } else {
-                        Diagonally_Left_Up(Math.abs(gamepad1.right_stick_y));
-                    }
-                } else if (gamepad1.right_stick_x < 0 && gamepad1.right_stick_y > 0) {
-                    if (Math.abs(gamepad1.right_stick_x) >= Math.abs(gamepad1.right_stick_y)) {
-                        Diagonally_Left_Down(Math.abs(gamepad1.right_stick_y));
-                    } else {
-                        Diagonally_Left_Down(Math.abs(gamepad1.right_stick_y));
-                    }
-                } else if (gamepad1.right_stick_x > 0 && gamepad1.right_stick_y < 0) {
-                    if (Math.abs(gamepad1.right_stick_x) >= Math.abs(gamepad1.right_stick_y)) {
-                        Diagonally_RIght_Up(Math.abs(gamepad1.right_stick_x));
-                    } else {
-                        Diagonally_RIght_Up(Math.abs(gamepad1.right_stick_y));
-                    }
-                } else if (gamepad1.right_stick_x > 0 && gamepad1.right_stick_y > 0) {
-                    if (Math.abs(gamepad1.right_stick_x) >= Math.abs(gamepad1.right_stick_y)) {
-                        Diagonally_RIght_Down(Math.abs(gamepad1.right_stick_y));
-                    } else {
-                        Diagonally_RIght_Down(Math.abs(gamepad1.right_stick_y));
-                    }
-                } else {
-                    if (gamepad1.right_stick_x == 0 && gamepad1.right_stick_y == 0) {
-                        StopBase();
-                    }
-                }
-                // slide left slide right
-                if (gamepad1.right_trigger <= 1 && gamepad1.right_trigger > 0) {
-                    Slide_Right(gamepad1.right_trigger);
-                } else if (gamepad1.left_trigger <= 1 && gamepad1.left_trigger > 0) {
-                    Slide_Left(gamepad1.left_trigger);
-                } else {
-                    StopBase();
+                // Mecanum drive is controlled with three axes: drive (front-and-back),
+                // strafe (left-and-right), and twist (rotating the whole chassis).
+                double drive  = gamepad1.left_stick_y * -1;
+                double strafe = gamepad1.left_stick_x;
+                double twist  = gamepad1.right_stick_x;
+
+                /*
+                 * If we had a gyro and wanted to do field-oriented control, here
+                 * is where we would implement it.
+                 *
+                 * The idea is fairly simple; we have a robot-oriented Cartesian (x,y)
+                 * coordinate (strafe, drive), and we just rotate it by the gyro
+                 * reading minus the offset that we read in the init() method.
+                 * Some rough pseudocode demonstrating:
+                 *
+                 * if Field Oriented Control:
+                 *     get gyro heading
+                 *     subtract initial offset from heading
+                 *     convert heading to radians (if necessary)
+                 *     new strafe = strafe * cos(heading) - drive * sin(heading)
+                 *     new drive  = strafe * sin(heading) + drive * cos(heading)
+                 *
+                 * If you want more understanding on where these rotation formulas come
+                 * from, refer to
+                 * https://en.wikipedia.org/wiki/Rotation_(mathematics)#Two_dimensions
+                 */
+
+                // You may need to multiply some of these by -1 to invert direction of
+                // the motor.  This is not an issue with the calculations themselves.
+                double[] speeds = {
+                        (drive + strafe + twist),
+                        (drive - strafe - twist),
+                        (drive - strafe + twist),
+                        (drive + strafe - twist)
+                };
+
+                // Because we are adding vectors and motors only take values between
+                // [-1,1] we may need to normalize them.
+
+                // Loop through all values in the speeds[] array and find the greatest
+                // *magnitude*.  Not the greatest velocity.
+                double max = Math.abs(speeds[0]);
+                for(int i = 0; i < speeds.length; i++) {
+                    if ( max < Math.abs(speeds[i]) ) max = Math.abs(speeds[i]);
                 }
 
+                // If and only if the maximum is outside of the range we want it to be,
+                // normalize all the other speeds based on the given speed value.
+                if (max > 1) {
+                    for (int i = 0; i < speeds.length; i++) speeds[i] /= max;
+                }
 
+                // apply the calculated values to the motors.
+                Left_Front_Wheel.setPower(speeds[0]);
+                Right_Front_Wheel.setPower(speeds[1]);
+                Left_Rear_Wheel.setPower(speeds[2]);
+                Right_Rear_Wheel.setPower(speeds[3]);
             }
 
         }
@@ -206,75 +204,6 @@ public class TeleOps extends LinearOpMode {
         Right_Rear_Wheel.setPower(0);
     }
 
-    private void Reverse(double power) {
-        Left_Front_Wheel.setPower(power * -1);
-        Right_Front_Wheel.setPower(power * -1);
-        Left_Rear_Wheel.setPower(power * -1);
-        Right_Rear_Wheel.setPower(power * -1);
-    }
-
-    private void Forward(float power) {
-        Left_Front_Wheel.setPower(power);
-        Right_Front_Wheel.setPower(power);
-        Left_Rear_Wheel.setPower(power);
-        Right_Rear_Wheel.setPower(power);
-    }
-
-    private void Left(float power) {
-        Left_Front_Wheel.setPower(power * -1);
-        Right_Front_Wheel.setPower(power);
-        Left_Rear_Wheel.setPower(power * -1);
-        Right_Rear_Wheel.setPower(power);
-    }
-
-    private void Right(float power) {
-        Left_Front_Wheel.setPower(power);
-        Right_Front_Wheel.setPower(power * -1);
-        Left_Rear_Wheel.setPower(power);
-        Right_Rear_Wheel.setPower(power * -1);
-    }
-
-    private void Diagonally_RIght_Up(float power) {
-        Left_Front_Wheel.setPower(power);
-        Right_Front_Wheel.setPower(0);
-        Left_Rear_Wheel.setPower(0);
-        Right_Rear_Wheel.setPower(power);
-    }
-
-    private void Diagonally_Left_Down(float power) {
-        Left_Front_Wheel.setPower(power * -1);
-        Right_Front_Wheel.setPower(0);
-        Left_Rear_Wheel.setPower(0);
-        Right_Rear_Wheel.setPower(power * -1);
-    }
-
-    private void Diagonally_Left_Up(float power) {
-        Left_Front_Wheel.setPower(0);
-        Right_Front_Wheel.setPower(power);
-        Left_Rear_Wheel.setPower(power);
-        Right_Rear_Wheel.setPower(0);
-    }
-
-    private void Diagonally_RIght_Down(float power) {
-        Left_Front_Wheel.setPower(0);
-        Right_Front_Wheel.setPower(power * -1);
-        Left_Rear_Wheel.setPower(power * -1);
-        Right_Rear_Wheel.setPower(0);
-    }
-
-    private void Slide_Left(float power) {
-        Left_Front_Wheel.setPower(power*-1);
-        Right_Front_Wheel.setPower(power);
-        Left_Rear_Wheel.setPower(power);
-        Right_Rear_Wheel.setPower(power*-1 );
-    }
-
-    private void Slide_Right(float power) {
-        Left_Front_Wheel.setPower(power);
-        Right_Front_Wheel.setPower(power*-1);
-        Left_Rear_Wheel.setPower(power*-1);
-        Right_Rear_Wheel.setPower(power);
-    }
     private void Move_Lift_Up_Continuous(){
         StopBase();
         while (!liftButtonTop.isPressed()) {
