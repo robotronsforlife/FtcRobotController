@@ -19,6 +19,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 
+import org.firstinspires.ftc.teamcode.Odometry.OdometryGlobalCoordinatePosition;
 import org.firstinspires.ftc.teamcode.Robot;
 
 @TeleOp(name = "TeleOps 2020-2021", group = "")
@@ -39,6 +40,7 @@ public class TeleOps extends LinearOpMode {
     public DcMotor Arm;
     public TouchSensor armButtonTop;
     public Servo blocker;
+    public TouchSensor otherLiftButtonTop;
 
     //private Robot robot;
 
@@ -51,6 +53,7 @@ public class TeleOps extends LinearOpMode {
         liftButtonBot = hardwareMap.get(TouchSensor.class, "liftButtonBot");
         liftservo = hardwareMap.get(CRServo.class, "liftservo");
         liftButtonTop = hardwareMap.get(TouchSensor.class, "liftButtonTop");
+        otherLiftButtonTop = hardwareMap.get(TouchSensor.class, "otherLiftButtonTop");
         picker = hardwareMap.get(DcMotor.class, "picker");
         pusher = hardwareMap.get(Servo.class, "pusher");
         leftShooter = hardwareMap.get(DcMotor.class, "leftShooter");
@@ -64,36 +67,41 @@ public class TeleOps extends LinearOpMode {
         Arm = hardwareMap.get(DcMotor.class, "Arm");
         armButtonTop = hardwareMap.get(TouchSensor.class, "armButtonTop");
         blocker = hardwareMap.get(Servo.class, "blocker");
-
+        Left_Rear_Wheel.setDirection(DcMotorSimple.Direction.REVERSE);
+        Left_Front_Wheel.setDirection(DcMotorSimple.Direction.REVERSE);
+        leftShooter.setDirection(DcMotorSimple.Direction.REVERSE);
 
         /*robot = new Robot();
         robot.Init(hardwareMap, telemetry, false);
          */
 
-
         waitForStart();
-        Left_Rear_Wheel.setDirection(DcMotorSimple.Direction.REVERSE);
-        Left_Front_Wheel.setDirection(DcMotorSimple.Direction.REVERSE);
-        leftShooter.setDirection(DcMotorSimple.Direction.REVERSE);
 
+/*        BaseController baseController = new BaseController(blocker);
+        Thread baseControllerThread = new Thread(baseController);
+        baseControllerThread.start();*/
+
+        // baseController.stop();
 
         if (opModeIsActive()) {
 
-
             while (opModeIsActive()) {
+
                 if (gamepad1.right_bumper) {
                     blocker.setPosition(1);
                 }
                 else if (gamepad1.left_bumper) {
                     blocker.setPosition(-1);
                 }
+
                 telemetry.update();
-                //lift up
+
+                //lift down
                 if (gamepad2.a && !liftButtonBot.isPressed()) {
                     Move_Lift_Down_Continuous();
                 }
-                //lift down
-                if (gamepad2.y && !liftButtonTop.isPressed()) {
+                //lift up
+                if (gamepad2.y && !(liftButtonTop.isPressed() || otherLiftButtonTop.isPressed())) {
                     Move_Lift_Up_Continuous();
                 }
                 //picker on
@@ -105,13 +113,13 @@ public class TeleOps extends LinearOpMode {
                     picker.setPower(0);
                 }
                 //pusher
-                if (gamepad2.left_bumper && liftButtonTop.isPressed()) {
+                if (gamepad2.left_bumper && (liftButtonTop.isPressed() || otherLiftButtonTop.isPressed())) {
                     pusher.setPosition(1);
                     sleep(500);
                     pusher.setPosition(-1);
                 }
                 //shooter
-                if (liftButtonTop.isPressed()) {
+                if (liftButtonTop.isPressed() || otherLiftButtonTop.isPressed()) {
                     Shooter_Start();
                 } else {
                     Shooter_Stop();
@@ -190,7 +198,6 @@ public class TeleOps extends LinearOpMode {
                 Left_Rear_Wheel.setPower(speeds[2]);
                 Right_Rear_Wheel.setPower(speeds[3]);
             }
-
         }
 
         telemetry.update();
@@ -206,12 +213,11 @@ public class TeleOps extends LinearOpMode {
 
     private void Move_Lift_Up_Continuous(){
         StopBase();
-        while (!liftButtonTop.isPressed()) {
+        while (!(liftButtonTop.isPressed() || otherLiftButtonTop.isPressed())) {
             liftservo.setPower(1);
             picker.setPower(0);
-
         }
-        liftservo.setPower(0.2);
+        liftservo.setPower(0);
     }
     private void Move_Lift_Down_Continuous(){
         StopBase();
